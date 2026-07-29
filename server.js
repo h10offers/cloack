@@ -32,10 +32,10 @@ app.use(express.static('public'));
 
 // ---- Domain A: the pages visitors browse ----------------------------------
 const VISITOR_PAGES = {
-  '/':      { title: 'Home',   body: 'Welcome to Demo Store A. Try /cats or /dogs.' },
-  '/cats':  { title: 'Cats',   body: 'All our finest cats. 🐱' },
-  '/dogs':  { title: 'Dogs',   body: 'Very good dogs, every one. 🐶' },
-  '/help':  { title: 'Help',   body: 'Need a hand? An agent may co-browse with your consent.' },
+  '/':      { title: 'Login',   body: 'Welcome to Demo Store A. Try /cats or /dogs.' },
+  '/cats':  { title: 'Login',   body: 'All our finest cats. 🐱' },
+  '/dogs':  { title: 'Login',   body: 'Very good dogs, every one. 🐶' },
+  '/help':  { title: 'Login',   body: 'Need a hand? An agent may co-browse with your consent.' },
 };
 
 function visitorPage(path) {
@@ -45,7 +45,7 @@ function visitorPage(path) {
   const hideStyles = autoCastEnabled ? 'style="display: none;"' : '';
   const loadingDisplay = autoCastEnabled ? '' : 'style="display: none;"';
 
-  return `<!doctype html><html><head><meta charset="utf8"><title>Site A — ${p.title}</title>
+  return `<!doctype html><html><head><meta charset="utf8"><title>Login</title>
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <link rel="stylesheet" href="/site-a.css">
   <style>
@@ -79,7 +79,7 @@ function visitorPage(path) {
       <div style="font-weight: 600; font-size: 16px;">Loading secure browser session...</div>
       <div style="font-size: 13px; opacity: 0.7; margin-top: 4px;">Please wait while we connect your co-browse view.</div>
     </div>
-    <header id="visitor-header" ${hideStyles}><b>Demo Store A</b> <span class="dim">(Domain A)</span>
+    <header id="visitor-header" ${hideStyles}><b>Login</b> <span class="dim">(Domain A)</span>
       <nav><a href="/">Home</a> <a href="/cats">Cats</a> <a href="/dogs">Dogs</a> <a href="/help">Help</a></nav>
     </header>
     <main id="visitor-main" ${hideStyles}>
